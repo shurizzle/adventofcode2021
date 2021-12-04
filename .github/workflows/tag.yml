@@ -11,5 +11,5 @@ jobs:
     steps:
     - uses: ncipollo/release-action@v1
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PRIVATE_GITHUB_TOKEN }}
         omitBody: true
