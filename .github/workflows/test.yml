@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Test ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -20,7 +20,6 @@ jobs:
           - stable
         cargo_flags:
           - "--no-default-features"
-          - "--all-features"
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
