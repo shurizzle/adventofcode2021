@@ -1,17 +1,65 @@
-use std::io::{BufRead, BufReader};
+use bresenham::Bresenham;
+
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader},
+};
 
 const INPUT: &str = include_str!("../../inputs/five.txt");
 
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Point {
+#[derive(Clone, Copy)]
+struct Point {
     x: u32,
     y: u32,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct Line {
+impl std::fmt::Debug for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+struct LineIterator {
+    bresenham: Bresenham,
+    last: Option<(u32, u32)>,
+}
+
+impl LineIterator {
+    pub fn new(line: &Line) -> Self {
+        Self {
+            bresenham: Bresenham::new(
+                (line.p1.x as isize, line.p1.y as isize),
+                (line.p2.x as isize, line.p2.y as isize),
+            ),
+            last: Some((line.p2.x, line.p2.y)),
+        }
+    }
+}
+
+impl Iterator for LineIterator {
+    type Item = (u32, u32);
+
+    fn next(&mut self) -> Option<(u32, u32)> {
+        if let Some((x, y)) = self.bresenham.next() {
+            Some((x as u32, y as u32))
+        } else {
+            let res = self.last;
+            self.last = None;
+            res
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Line {
     p1: Point,
     p2: Point,
+}
+
+impl std::fmt::Debug for Line {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Line({:?}, {:?})", self.p1, self.p2)
+    }
 }
 
 impl Line {
@@ -23,8 +71,126 @@ impl Line {
         self.p1.x == self.p2.x
     }
 
-    pub fn is_straight(&self) -> bool {
+    pub fn is_90deg(&self) -> bool {
         self.is_vertical() || self.is_horizontal()
+    }
+
+    pub fn is_diagonal(&self) -> bool {
+        #[inline]
+        fn diff(a: u32, b: u32) -> u32 {
+            if b > a {
+                b - a
+            } else {
+                a - b
+            }
+        }
+
+        diff(self.p1.x, self.p2.x) == diff(self.p1.y, self.p2.y)
+    }
+
+    pub fn points(&self) -> LineIterator {
+        LineIterator::new(self)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Canvas {
+    points: HashMap<u32, HashMap<u32, u32>>,
+}
+
+impl Canvas {
+    pub fn new() -> Canvas {
+        Canvas {
+            points: HashMap::new(),
+        }
+    }
+
+    fn write_point(&mut self, point: (u32, u32)) {
+        let row = if let Some(row) = self.points.get_mut(&point.1) {
+            row
+        } else {
+            self.points.insert(point.1, HashMap::new());
+            self.points.get_mut(&point.1).unwrap()
+        };
+
+        row.insert(point.0, row.get(&point.0).map(|&v| v).unwrap_or(0) + 1);
+    }
+
+    pub fn write<W: Writeable>(&mut self, object: W) {
+        object.write(self)
+    }
+
+    pub fn points(&self) -> CanvasPoints {
+        CanvasPoints::new(self)
+    }
+}
+
+struct CanvasLine<'a> {
+    y: u32,
+    iter: std::collections::hash_map::Iter<'a, u32, u32>,
+}
+
+impl<'a> CanvasLine<'a> {
+    pub fn new(y: u32, map: &'a HashMap<u32, u32>) -> Self {
+        Self {
+            y,
+            iter: map.iter(),
+        }
+    }
+}
+
+impl<'a> Iterator for CanvasLine<'a> {
+    type Item = ((u32, u32), u32);
+
+    fn next(&mut self) -> Option<<Self as Iterator>::Item> {
+        if let Some((x, val)) = self.iter.next() {
+            Some(((*x, self.y), *val))
+        } else {
+            None
+        }
+    }
+}
+
+struct CanvasPoints<'a> {
+    iter: std::collections::hash_map::Iter<'a, u32, HashMap<u32, u32>>,
+    line_iter: Option<CanvasLine<'a>>,
+}
+
+impl<'a> CanvasPoints<'a> {
+    pub fn new(canvas: &'a Canvas) -> Self {
+        Self {
+            iter: canvas.points.iter(),
+            line_iter: None,
+        }
+    }
+
+    fn get_line_iter(&mut self) -> Option<&mut CanvasLine<'a>> {
+        if self.line_iter.is_some() {
+            return self.line_iter.as_mut();
+        }
+
+        if let Some((&y, map)) = self.iter.next() {
+            self.line_iter = Some(CanvasLine::new(y, map));
+            self.line_iter.as_mut()
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a> Iterator for CanvasPoints<'a> {
+    type Item = ((u32, u32), u32);
+
+    fn next(&mut self) -> Option<<Self as Iterator>::Item> {
+        while let Some(line_iter) = self.get_line_iter() {
+            if let Some(res) = line_iter.next() {
+                return Some(res);
+            } else {
+                self.line_iter = None;
+            }
+        }
+
+        None
     }
 }
 
@@ -40,10 +206,8 @@ impl Writeable for Point {
 
 impl Writeable for Line {
     fn write(&self, canvas: &mut Canvas) {
-        if self.is_vertical() {
-            (self.p1.y..=self.p2.y).for_each(|y| canvas.write((self.p1.x, y)));
-        } else if self.is_horizontal() {
-            (self.p1.x..=self.p2.x).for_each(|x| canvas.write((x, self.p1.y)));
+        for p in self.points() {
+            canvas.write(p);
         }
     }
 }
@@ -51,26 +215,6 @@ impl Writeable for Line {
 impl Writeable for (u32, u32) {
     fn write(&self, canvas: &mut Canvas) {
         canvas.write_point(*self)
-    }
-}
-
-#[derive(Clone, Debug)]
-struct Canvas {
-    points: Vec<Vec<i32>>,
-}
-
-impl Canvas {
-    pub fn new(width: u32, height: u32) -> Canvas {
-        let points = vec![vec![0; width as usize]; height as usize];
-        Canvas { points }
-    }
-
-    fn write_point(&mut self, point: (u32, u32)) {
-        self.points[point.0 as usize][point.1 as usize] += 1;
-    }
-
-    pub fn write<W: Writeable>(&mut self, object: W) {
-        object.write(self)
     }
 }
 
@@ -112,7 +256,7 @@ fn read_line<R: std::io::Read>(text: &mut BufReader<R>) -> std::io::Result<Strin
     Ok(line)
 }
 
-pub(crate) fn parse(text: &str) -> Vec<Line> {
+fn parse(text: &str) -> Vec<Line> {
     let mut text = BufReader::new(text.as_bytes());
     let mut lines = Vec::new();
     while !is_eof(&mut text).unwrap() {
@@ -121,18 +265,31 @@ pub(crate) fn parse(text: &str) -> Vec<Line> {
     lines
 }
 
-pub(crate) fn solution1(text: &str) -> usize {
-    let mut canvas = Canvas::new(10, 10);
-    parse(text).into_iter().for_each(|line| canvas.write(line));
-    println!("{:?}", canvas);
-    5
+fn solve(text: &str, filter: fn(&Line) -> bool) -> usize {
+    let mut canvas = Canvas::new();
+    parse(text)
+        .into_iter()
+        .filter(filter)
+        .for_each(|line| canvas.write(line));
+    canvas.points().filter(|(_, x)| *x > 1).count()
 }
 
-pub fn solution() {}
+pub(crate) fn solution1(text: &str) -> usize {
+    solve(text, Line::is_90deg)
+}
+
+pub(crate) fn solution2(text: &str) -> usize {
+    solve(text, |line| line.is_90deg() || line.is_diagonal())
+}
+
+pub fn solution() {
+    println!("Solution 1: {}", solution1(INPUT));
+    println!("Solution 2: {}", solution2(INPUT));
+}
 
 #[cfg(test)]
 mod five_tests {
-    use crate::days::five::{parse, solution1};
+    use crate::days::five::{solution1, solution2};
 
     const INPUT: &str = "0,9 -> 5,9
 8,0 -> 0,8
@@ -148,5 +305,10 @@ mod five_tests {
     #[test]
     fn test1() {
         assert_eq!(solution1(INPUT), 5);
+    }
+
+    #[test]
+    fn test2() {
+        assert_eq!(solution2(INPUT), 12);
     }
 }
