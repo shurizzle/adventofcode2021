@@ -1,9 +1,6 @@
 use bresenham::Bresenham;
 
-use std::{
-    collections::HashMap,
-    io::{BufRead, BufReader},
-};
+use std::{collections::HashMap, io::BufReader};
 
 use crate::utils::{is_eof, read_line};
 

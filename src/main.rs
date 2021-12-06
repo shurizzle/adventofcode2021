@@ -2,12 +2,13 @@ pub mod days;
 pub(crate) mod utils;
 pub(crate) mod window;
 
-const DAYS: [fn() -> (); 5] = [
+const DAYS: [fn() -> (); 6] = [
     days::one::solution,
     days::two::solution,
     days::three::solution,
     days::four::solution,
     days::five::solution,
+    days::six::solution,
 ];
 
 fn main() {
