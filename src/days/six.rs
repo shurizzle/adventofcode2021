@@ -8,25 +8,19 @@ fn parse(text: &str) -> [usize; 9] {
     fishes
 }
 
-fn next(fishes: [usize; 9]) -> [usize; 9] {
-    let mut res = [0usize; 9];
-
-    for (i, n) in fishes.into_iter().enumerate() {
-        if i == 0 {
-            res[8] += n;
-            res[6] += n;
-        } else {
-            res[i - 1] += n;
-        }
+fn evolve(fishes: &mut [usize; 9]) {
+    let first = fishes[0];
+    for i in 0..8 {
+        fishes[i] = fishes[i + 1];
     }
-
-    res
+    fishes[8] = first;
+    fishes[6] += first;
 }
 
 fn solve(text: &str, days: usize) -> usize {
     let mut fishes = parse(text);
     for _ in 0..days {
-        fishes = next(fishes);
+        evolve(&mut fishes);
     }
     fishes.into_iter().sum()
 }
