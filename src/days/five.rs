@@ -5,6 +5,8 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+use crate::utils::{is_eof, read_line};
+
 const INPUT: &str = include_str!("../../inputs/five.txt");
 
 #[derive(Clone, Copy)]
@@ -95,7 +97,7 @@ impl Line {
 
 #[derive(Clone, Debug)]
 struct Canvas {
-    points: HashMap<u32, HashMap<u32, u32>>,
+    points: HashMap<(u32, u32), u32>,
 }
 
 impl Canvas {
@@ -106,14 +108,8 @@ impl Canvas {
     }
 
     fn write_point(&mut self, point: (u32, u32)) {
-        let row = if let Some(row) = self.points.get_mut(&point.1) {
-            row
-        } else {
-            self.points.insert(point.1, HashMap::new());
-            self.points.get_mut(&point.1).unwrap()
-        };
-
-        row.insert(point.0, row.get(&point.0).map(|&v| v).unwrap_or(0) + 1);
+        self.points
+            .insert(point, self.points.get(&point).map(|&v| v).unwrap_or(0) + 1);
     }
 
     pub fn write<W: Writeable>(&mut self, object: W) {
@@ -125,55 +121,14 @@ impl Canvas {
     }
 }
 
-struct CanvasLine<'a> {
-    y: u32,
-    iter: std::collections::hash_map::Iter<'a, u32, u32>,
-}
-
-impl<'a> CanvasLine<'a> {
-    pub fn new(y: u32, map: &'a HashMap<u32, u32>) -> Self {
-        Self {
-            y,
-            iter: map.iter(),
-        }
-    }
-}
-
-impl<'a> Iterator for CanvasLine<'a> {
-    type Item = ((u32, u32), u32);
-
-    fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        if let Some((x, val)) = self.iter.next() {
-            Some(((*x, self.y), *val))
-        } else {
-            None
-        }
-    }
-}
-
 struct CanvasPoints<'a> {
-    iter: std::collections::hash_map::Iter<'a, u32, HashMap<u32, u32>>,
-    line_iter: Option<CanvasLine<'a>>,
+    iter: std::collections::hash_map::Iter<'a, (u32, u32), u32>,
 }
 
 impl<'a> CanvasPoints<'a> {
     pub fn new(canvas: &'a Canvas) -> Self {
         Self {
             iter: canvas.points.iter(),
-            line_iter: None,
-        }
-    }
-
-    fn get_line_iter(&mut self) -> Option<&mut CanvasLine<'a>> {
-        if self.line_iter.is_some() {
-            return self.line_iter.as_mut();
-        }
-
-        if let Some((&y, map)) = self.iter.next() {
-            self.line_iter = Some(CanvasLine::new(y, map));
-            self.line_iter.as_mut()
-        } else {
-            None
         }
     }
 }
@@ -182,15 +137,11 @@ impl<'a> Iterator for CanvasPoints<'a> {
     type Item = ((u32, u32), u32);
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        while let Some(line_iter) = self.get_line_iter() {
-            if let Some(res) = line_iter.next() {
-                return Some(res);
-            } else {
-                self.line_iter = None;
-            }
+        if let Some((&(x, y), &val)) = self.iter.next() {
+            Some(((x, y), val))
+        } else {
+            None
         }
-
-        None
     }
 }
 
@@ -242,18 +193,6 @@ fn parse_line(line: &str) -> Line {
         p1: parse_point(points[0]),
         p2: parse_point(points[1]),
     }
-}
-
-fn is_eof<R: std::io::Read>(text: &mut BufReader<R>) -> std::io::Result<bool> {
-    text.fill_buf().map(|b| b.is_empty())
-}
-
-fn read_line<R: std::io::Read>(text: &mut BufReader<R>) -> std::io::Result<String> {
-    let mut line = String::new();
-    text.read_line(&mut line)?;
-    line.truncate(line.trim_end_matches('\n').len());
-    line.truncate(line.trim_end_matches('\r').len());
-    Ok(line)
 }
 
 fn parse(text: &str) -> Vec<Line> {

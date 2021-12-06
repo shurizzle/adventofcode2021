@@ -1,4 +1,5 @@
 pub mod days;
+pub(crate) mod utils;
 pub(crate) mod window;
 
 const DAYS: [fn() -> (); 5] = [
