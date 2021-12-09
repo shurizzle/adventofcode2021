@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap};
 
 const INPUT: &str = include_str!("../../inputs/eight.txt");
 
@@ -82,13 +82,12 @@ fn split_values(
     )
 }
 
-fn make_str(v: &[char]) -> String {
-    let mut v = v.into_iter().map(|&x| x).collect::<Vec<char>>();
-    v.sort();
-    v.into_iter().collect()
+pub fn make_bitmap<C: Borrow<char>, I: Iterator<Item = C>>(i: I) -> u8 {
+    i.map(|c| (*c.borrow() as u8) - 'a' as u8)
+        .fold(0, |acc, c| acc | (1 << c))
 }
 
-pub(crate) fn make_map(values: [String; 10]) -> HashMap<String, usize> {
+pub(crate) fn make_map(values: [String; 10]) -> HashMap<u8, usize> {
     let mut map = HashMap::new();
 
     let (one, four, seven, seg_5, seg_6) = split_values(values);
@@ -123,24 +122,30 @@ pub(crate) fn make_map(values: [String; 10]) -> HashMap<String, usize> {
         .find(|v| ![a, b, c, d, e, f].contains(v))
         .unwrap();
 
-    map.insert(make_str(&[a, b, c, e, f, g]), 0);
-    map.insert(make_str(&[c, f]), 1);
-    map.insert(make_str(&[a, c, d, e, g]), 2);
-    map.insert(make_str(&[a, c, d, f, g]), 3);
-    map.insert(make_str(&[b, c, d, f]), 4);
-    map.insert(make_str(&[a, b, d, f, g]), 5);
-    map.insert(make_str(&[a, b, d, e, f, g]), 6);
-    map.insert(make_str(&[a, c, f]), 7);
-    map.insert(make_str(&[a, b, c, d, e, f, g]), 8);
-    map.insert(make_str(&[a, b, c, d, f, g]), 9);
+    map.insert(make_bitmap([a, b, c, e, f, g].iter()), 0);
+    map.insert(make_bitmap([c, f].iter()), 1);
+    map.insert(make_bitmap([a, c, d, e, g].iter()), 2);
+    map.insert(make_bitmap([a, c, d, f, g].iter()), 3);
+    map.insert(make_bitmap([b, c, d, f].iter()), 4);
+    map.insert(make_bitmap([a, b, d, f, g].iter()), 5);
+    map.insert(make_bitmap([a, b, d, e, f, g].iter()), 6);
+    map.insert(make_bitmap([a, c, f].iter()), 7);
+    map.insert(make_bitmap([a, b, c, d, e, f, g].iter()), 8);
+    map.insert(make_bitmap([a, b, c, d, f, g].iter()), 9);
 
     map
 }
 
-fn sort_string(s: &str) -> String {
-    let mut v = s.chars().collect::<Vec<char>>();
-    v.sort();
-    v.into_iter().collect()
+fn parse(text: &str) -> Vec<Vec<usize>> {
+    raw_parse(text)
+        .into_iter()
+        .map(|(wires, nums)| {
+            let map = make_map(wires);
+            nums.into_iter()
+                .map(|n| map[&make_bitmap(n.chars())])
+                .collect()
+        })
+        .collect()
 }
 
 pub(crate) fn solution1(text: &str) -> usize {
@@ -155,15 +160,10 @@ pub(crate) fn solution1(text: &str) -> usize {
 }
 
 pub(crate) fn solution2(text: &str) -> usize {
-    raw_parse(text)
+    parse(text)
         .into_iter()
-        .map(|(wires, nums)| {
-            let map = make_map(wires);
-            nums.into_iter()
-                .map(|n| map[&sort_string(&n)])
-                .fold(0, |acc, v| acc * 10 + v)
-        })
-        .sum::<usize>()
+        .map(|nums| nums.into_iter().fold(0, |acc, n| acc * 10 + n))
+        .sum()
 }
 
 pub fn solution() {
