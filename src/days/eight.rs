@@ -38,12 +38,14 @@ fn split_values(
     [char; 2],
     [char; 4],
     [char; 3],
+    [char; 7],
     [[char; 5]; 3],
     [[char; 6]; 3],
 ) {
     let mut one = None;
     let mut four = None;
     let mut seven = None;
+    let mut eight = None;
     let mut seg_5 = Vec::new();
     let mut seg_6 = Vec::new();
 
@@ -68,7 +70,9 @@ fn split_values(
             6 => {
                 seg_6.push(v.try_into().unwrap());
             }
-            7 => (),
+            7 => {
+                eight = Some(v.try_into().unwrap());
+            }
             _ => unreachable!(),
         }
     }
@@ -77,61 +81,60 @@ fn split_values(
         one.unwrap(),
         four.unwrap(),
         seven.unwrap(),
+        eight.unwrap(),
         seg_5.try_into().unwrap(),
         seg_6.try_into().unwrap(),
     )
 }
 
-pub fn make_bitmap<C: Borrow<char>, I: Iterator<Item = C>>(i: I) -> u8 {
+fn make_bitmap<C: Borrow<char>, I: Iterator<Item = C>>(i: I) -> u8 {
     i.map(|c| (*c.borrow() as u8) - 'a' as u8)
         .fold(0, |acc, c| acc | (1 << c))
 }
 
-pub(crate) fn make_map(values: [String; 10]) -> HashMap<u8, usize> {
+fn contains<C: PartialEq>(a: &[C], b: &[C]) -> bool {
+    b.iter().find(|&c| !a.contains(c)).is_none()
+}
+
+fn extract<C: PartialEq, A: Borrow<[C]>>(haystack: &mut Vec<A>, find: impl Fn(&[C]) -> bool) -> A {
+    let idx = haystack
+        .iter()
+        .enumerate()
+        .find_map(|(i, n)| if find(n.borrow()) { Some(i) } else { None })
+        .unwrap();
+    haystack.remove(idx)
+}
+
+fn extract_contains<C: PartialEq, A: Borrow<[C]>>(haystack: &mut Vec<A>, search: &[C]) -> A {
+    extract(haystack, |n| contains(n, search))
+}
+
+fn make_map(values: [String; 10]) -> HashMap<u8, usize> {
     let mut map = HashMap::new();
 
-    let (one, four, seven, seg_5, seg_6) = split_values(values);
+    let (one, four, seven, eight, seg_5, seg_6) = split_values(values);
+    let mut seg_5 = seg_5.to_vec();
+    let mut seg_6 = seg_6.to_vec();
+    let three = extract_contains(&mut seg_5, &one);
+    let nine = extract_contains(&mut seg_6, &four);
+    let zero = extract_contains(&mut seg_6, &one);
+    let six = seg_6.remove(0);
+    let five = extract(&mut seg_5, |n| contains(&six, n));
+    let two = seg_5.remove(0);
 
-    let a = *seven.iter().find(|&c| !one.contains(c)).unwrap();
-    let three = seg_5
-        .iter()
-        .find(|s5| s5.iter().filter(|&c| one.contains(c)).count() == 2)
-        .unwrap();
-    let diff = four
-        .iter()
-        .filter(|&c| !one.contains(c))
-        .map(|&x| x)
-        .collect::<Vec<char>>();
-    let two = seg_5
-        .iter()
-        .filter(|&s5| s5 != three)
-        .find(|&s5| diff.iter().find(|&c| !s5.contains(c)).is_some())
-        .unwrap();
-    let five = seg_5.iter().find(|&s5| s5 != three && s5 != two).unwrap();
-    let b = *five.iter().find(|&c| !three.contains(c)).unwrap();
-    let e = *two.iter().find(|&c| !three.contains(c)).unwrap();
-    let c = *two.iter().find(|&c| !five.contains(c) && c != &e).unwrap();
-    let zero = seg_6
-        .iter()
-        .find(|s6| s6.contains(&c) && s6.contains(&e))
-        .unwrap();
-    let d = ('a'..='g').into_iter().find(|c| !zero.contains(c)).unwrap();
-    let f = *one.iter().find(|&v| v != &c).unwrap();
-    let g = ('a'..='g')
-        .into_iter()
-        .find(|v| ![a, b, c, d, e, f].contains(v))
-        .unwrap();
+    assert_eq!(seg_5.len(), 0);
+    assert_eq!(seg_6.len(), 0);
 
-    map.insert(make_bitmap([a, b, c, e, f, g].iter()), 0);
-    map.insert(make_bitmap([c, f].iter()), 1);
-    map.insert(make_bitmap([a, c, d, e, g].iter()), 2);
-    map.insert(make_bitmap([a, c, d, f, g].iter()), 3);
-    map.insert(make_bitmap([b, c, d, f].iter()), 4);
-    map.insert(make_bitmap([a, b, d, f, g].iter()), 5);
-    map.insert(make_bitmap([a, b, d, e, f, g].iter()), 6);
-    map.insert(make_bitmap([a, c, f].iter()), 7);
-    map.insert(make_bitmap([a, b, c, d, e, f, g].iter()), 8);
-    map.insert(make_bitmap([a, b, c, d, f, g].iter()), 9);
+    map.insert(make_bitmap(zero.iter()), 0);
+    map.insert(make_bitmap(one.iter()), 1);
+    map.insert(make_bitmap(two.iter()), 2);
+    map.insert(make_bitmap(three.iter()), 3);
+    map.insert(make_bitmap(four.iter()), 4);
+    map.insert(make_bitmap(five.iter()), 5);
+    map.insert(make_bitmap(six.iter()), 6);
+    map.insert(make_bitmap(seven.iter()), 7);
+    map.insert(make_bitmap(eight.iter()), 8);
+    map.insert(make_bitmap(nine.iter()), 9);
 
     map
 }
