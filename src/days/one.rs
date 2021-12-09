@@ -1,6 +1,6 @@
 use crate::window::Window;
 
-const INPUT: &str = include_str!("../../inputs/one.txt");
+const INPUT: &str = include_str!("../../inputs/1");
 
 pub(crate) fn window_cmp(text: &str, window_size: usize) -> usize {
     let mut window: Window<u32> = Window::new(window_size);

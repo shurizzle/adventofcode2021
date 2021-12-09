@@ -1,4 +1,4 @@
-const INPUT: &str = include_str!("../../inputs/seven.txt");
+const INPUT: &str = include_str!("../../inputs/7");
 
 fn parse(text: &str) -> Vec<usize> {
     text.trim()

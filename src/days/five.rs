@@ -4,7 +4,7 @@ use std::{collections::HashMap, io::BufReader};
 
 use crate::utils::{is_eof, read_line};
 
-const INPUT: &str = include_str!("../../inputs/five.txt");
+const INPUT: &str = include_str!("../../inputs/5");
 
 #[derive(Clone, Copy)]
 struct Point {

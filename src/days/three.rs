@@ -1,4 +1,4 @@
-const INPUT: &str = include_str!("../../inputs/three.txt");
+const INPUT: &str = include_str!("../../inputs/3");
 
 fn split(text: &str) -> Vec<Vec<u8>> {
     text.lines()

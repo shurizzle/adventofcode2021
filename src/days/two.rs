@@ -2,7 +2,7 @@
 
 use std::{fmt::Debug, str::FromStr};
 
-const INPUT: &str = include_str!("../../inputs/two.txt");
+const INPUT: &str = include_str!("../../inputs/2");
 const INVALID: &str = "Invalid command";
 
 #[derive(Copy, Clone, Default, Debug)]

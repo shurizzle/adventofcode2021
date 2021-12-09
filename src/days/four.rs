@@ -4,7 +4,7 @@ use std::io::{BufRead, BufReader};
 
 use crate::utils::{is_eof, read_line};
 
-const INPUT: &str = include_str!("../../inputs/four.txt");
+const INPUT: &str = include_str!("../../inputs/4");
 
 #[derive(Copy, Clone, Debug)]
 struct Board {

@@ -1,4 +1,4 @@
-const INPUT: &str = include_str!("../../inputs/six.txt");
+const INPUT: &str = include_str!("../../inputs/6");
 
 fn parse(text: &str) -> [usize; 9] {
     let mut fishes = [0usize; 9];

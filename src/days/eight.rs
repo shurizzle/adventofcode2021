@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-const INPUT: &str = include_str!("../../inputs/eight.txt");
+const INPUT: &str = include_str!("../../inputs/8");
 
 fn raw_parse(text: &str) -> Vec<([u8; 10], Vec<u8>)> {
     text.lines()
