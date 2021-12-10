@@ -2,7 +2,7 @@ pub mod days;
 pub(crate) mod utils;
 pub(crate) mod window;
 
-const DAYS: [fn() -> (); 9] = [
+const DAYS: [fn() -> (); 10] = [
     days::one::solution,
     days::two::solution,
     days::three::solution,
@@ -12,6 +12,7 @@ const DAYS: [fn() -> (); 9] = [
     days::seven::solution,
     days::eight::solution,
     days::nine::solution,
+    days::ten::solution,
 ];
 
 fn main() {
@@ -36,10 +37,12 @@ fn main() {
 }
 
 fn run(day: usize) {
-    if day == 0 || day > DAYS.len() {
+    let idx = day - 1;
+    if !(0..DAYS.len()).contains(&idx) {
         println!("Day {} does not exist", day);
+        return;
     }
 
     println!("Day {}:", day);
-    DAYS[day - 1]();
+    DAYS[idx]();
 }
