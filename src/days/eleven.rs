@@ -67,14 +67,14 @@ fn parse(text: &str) -> Vec<Vec<u8>> {
         .collect()
 }
 
-fn inc_all<T: IncAssign + Ord>(matrix: &mut Vec<Vec<T>>, max: T) -> FIFOSet<(usize, usize)> {
+fn inc_all<T: IncAssign + Ord>(matrix: &mut Vec<Vec<T>>, max: &T) -> FIFOSet<(usize, usize)> {
     let mut flashing = FIFOSet::new();
 
     for i in 0..matrix.len() {
         for j in 0..matrix[i].len() {
             matrix[i][j].inc_assign();
 
-            if matrix[i][j] > max {
+            if matrix[i][j].gt(max) {
                 flashing.push((i, j));
             }
         }
@@ -85,37 +85,37 @@ fn inc_all<T: IncAssign + Ord>(matrix: &mut Vec<Vec<T>>, max: T) -> FIFOSet<(usi
 
 fn flash<T: IncAssign + PartialOrd>(
     matrix: &mut Vec<Vec<T>>,
-    max: T,
+    max: &T,
     pos: (usize, usize),
     stack: &mut FIFOSet<(usize, usize)>,
 ) {
     for (i, j) in neighbors(pos, (matrix.len(), matrix[pos.0].len())) {
-        if matrix[i][j] <= max {
+        if matrix[i][j].le(max) {
             matrix[i][j].inc_assign();
-            if matrix[i][j] > max {
+            if matrix[i][j].gt(max) {
                 stack.push((i, j));
             }
         }
     }
 }
 
-fn flash_all<T: IncAssign + Ord + Clone>(
+fn flash_all<T: IncAssign + Ord>(
     matrix: &mut Vec<Vec<T>>,
-    max: T,
+    max: &T,
     mut stack: FIFOSet<(usize, usize)>,
 ) {
     while let Some(pos) = stack.pop() {
-        if matrix[pos.0][pos.1] > max {
-            flash(matrix, max.clone(), pos, &mut stack);
+        if matrix[pos.0][pos.1].gt(max) {
+            flash(matrix, max, pos, &mut stack);
         }
     }
 }
 
-fn count_and_reset<T: Clone + Ord>(matrix: &mut Vec<Vec<T>>, min: T, max: T) -> usize {
+fn count_and_reset<T: Clone + Ord>(matrix: &mut Vec<Vec<T>>, min: &T, max: &T) -> usize {
     let mut count: usize = 0;
     for i in 0..matrix.len() {
         for j in 0..matrix[i].len() {
-            if matrix[i][j] > max {
+            if matrix[i][j].gt(max) {
                 count += 1;
                 matrix[i][j] = min.clone();
             }
@@ -125,22 +125,22 @@ fn count_and_reset<T: Clone + Ord>(matrix: &mut Vec<Vec<T>>, min: T, max: T) -> 
     count
 }
 
-fn evolve<T: IncAssign + Ord + Clone>(matrix: &mut Vec<Vec<T>>, min: T, max: T) -> usize {
-    let flashing = inc_all(matrix, max.clone());
-    flash_all(matrix, max.clone(), flashing);
+fn evolve<T: IncAssign + Ord + Clone>(matrix: &mut Vec<Vec<T>>, min: &T, max: &T) -> usize {
+    let flashing = inc_all(matrix, max);
+    flash_all(matrix, max, flashing);
     count_and_reset(matrix, min, max)
 }
 
 pub(crate) fn solution1(text: &str) -> usize {
     let mut matrix = parse(text);
-    (0..100).fold(0usize, |acc, _| acc + evolve(&mut matrix, 0, 9))
+    (0..100).fold(0usize, |acc, _| acc + evolve(&mut matrix, &0, &9))
 }
 
 pub(crate) fn solution2(text: &str) -> usize {
     let mut matrix = parse(text);
     let count = matrix.iter().map(|line| line.len()).sum();
     let mut step = 1;
-    while evolve(&mut matrix, 0, 9) != count {
+    while evolve(&mut matrix, &0, &9) != count {
         step += 1;
     }
     step
