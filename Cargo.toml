@@ -13,3 +13,4 @@ panic = "abort"
 
 [dependencies]
 bresenham = "0.1.1"
+fifo-set = "1.0.0"

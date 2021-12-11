@@ -7,6 +7,7 @@ name = "adventofcode"
 version = "0.1.0"
 dependencies = [
  "bresenham",
+ "fifo-set",
 ]
 
 [[package]]
@@ -14,3 +15,9 @@ name = "bresenham"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfc1116225f66d2ea341a26503f83a6b1205070a6f7199ce1f1550ead91f6fd7"
+
+[[package]]
+name = "fifo-set"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "734ae6ccac5547c16c6824353e3e6acd4fc5dd0185d679f9ed6777dce1ce170d"
