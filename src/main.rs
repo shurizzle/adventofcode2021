@@ -3,7 +3,7 @@ pub(crate) mod graph;
 pub(crate) mod utils;
 pub(crate) mod window;
 
-const DAYS: [fn() -> (); 12] = [
+const DAYS: [fn() -> (); 13] = [
     days::one::solution,
     days::two::solution,
     days::three::solution,
@@ -16,6 +16,7 @@ const DAYS: [fn() -> (); 12] = [
     days::ten::solution,
     days::eleven::solution,
     days::twelve::solution,
+    days::thirteen::solution,
 ];
 
 fn main() {
