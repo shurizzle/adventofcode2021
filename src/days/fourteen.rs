@@ -6,7 +6,6 @@ const INPUT: &str = include_str!("../../inputs/14");
 struct Polymer {
     units: BTreeMap<(char, char), usize>,
     rules: BTreeMap<(char, char), char>,
-    counts: BTreeMap<char, usize>,
     first: Option<char>,
     last: Option<char>,
 }
@@ -26,54 +25,48 @@ impl Polymer {
         }
 
         let mut units = BTreeMap::new();
-        let mut counts = BTreeMap::new();
         for key in keys {
-            *units.entry(key).or_insert(0usize) += 1;
-            *counts.entry(key.0).or_insert(0usize) += 1;
-            *counts.entry(key.1).or_insert(0usize) += 1;
+            *units.entry(key).or_insert(0) += 1;
         }
-        if let Some(first) = first {
-            *counts.entry(first).or_insert(0) += 1;
-        }
-        if let Some(last) = last {
-            *counts.entry(last).or_insert(0) += 1;
-        }
-        counts.iter_mut().for_each(|(_, c)| {
-            *c /= 2;
-        });
 
         Self {
             units,
             rules,
-            counts,
             first,
             last,
         }
     }
 
     pub fn evolve(&mut self) {
-        self.counts = BTreeMap::new();
         for (key, count) in take(&mut self.units) {
             if let Some(&ins) = self.rules.get(&key) {
                 *self.units.entry((key.0, ins)).or_insert(0) += count;
                 *self.units.entry((ins, key.1)).or_insert(0) += count;
-                *self.counts.entry(key.0).or_insert(0) += count;
-                *self.counts.entry(ins).or_insert(0) += count * 2;
-                *self.counts.entry(key.1).or_insert(0) += count;
             }
         }
+    }
+
+    pub fn get_counts(&self) -> BTreeMap<char, usize> {
+        let mut counts = BTreeMap::new();
+        for (&(a, b), &count) in self.units.iter() {
+            *counts.entry(a).or_insert(0) += count;
+            *counts.entry(b).or_insert(0) += count;
+        }
         if let Some(first) = self.first {
-            *self.counts.entry(first).or_insert(0) += 1;
+            *counts.entry(first).or_insert(0) += 1;
         }
         if let Some(last) = self.last {
-            *self.counts.entry(last).or_insert(0) += 1;
+            *counts.entry(last).or_insert(0) += 1;
         }
 
-        self.counts.iter_mut().for_each(|(_, c)| *c /= 2);
+        counts.iter_mut().for_each(|(_, c)| *c /= 2);
+
+        counts
     }
 
     pub fn min_max(&self) -> (Option<usize>, Option<usize>) {
-        let (min, max) = min_max(self.counts.values());
+        let counts = self.get_counts();
+        let (min, max) = min_max(counts.values());
 
         (min.map(|x| *x), max.map(|x| *x))
     }
