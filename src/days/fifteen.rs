@@ -1,10 +1,10 @@
 use std::hash::Hash;
 
-use pathfinding::{directed::dijkstra::dijkstra, num_traits::Zero};
+use pathfinding::num_traits::Zero;
 
 use crate::utils::{
     inc::IncAssign,
-    matrix::{cardinal_coords, Coord, Matrix},
+    matrix::{dijkstra, Coord, Matrix},
 };
 
 const INPUT: &str = include_str!("../../inputs/15");
@@ -20,20 +20,14 @@ fn parse(text: &str) -> Matrix<usize> {
         .collect::<Vec<_>>()
 }
 
-fn adiacents<'a, T: Clone>(matrix: &'a Matrix<T>, pos: &Coord) -> Vec<(Coord, T)> {
-    cardinal_coords(matrix, pos)
-        .map(|pos| (pos, matrix[pos.0][pos.1].clone()))
-        .collect()
-}
-
-fn solve<'a, T>(matrix: &'a Matrix<T>) -> Option<(Vec<Coord>, T)>
+fn solve<T>(matrix: &Matrix<T>) -> Option<(Vec<Coord>, T)>
 where
     T: Eq + Hash + Copy + Clone + Ord + Zero,
 {
     dijkstra(
-        &(0, 0),
-        |pos| adiacents(matrix, pos),
-        |&pos| (matrix.len() - 1, matrix[matrix.len() - 1].len() - 1) == pos,
+        matrix,
+        (0, 0),
+        (matrix.len() - 1, matrix[matrix.len() - 1].len() - 1),
     )
 }
 

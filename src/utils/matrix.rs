@@ -159,3 +159,23 @@ where
 
     state
 }
+
+pub fn dijkstra<T, C1, C2>(matrix: &Matrix<T>, start: C1, end: C2) -> Option<(Vec<Coord>, T)>
+where
+    T: Eq + std::hash::Hash + Copy + Clone + Ord + pathfinding::num_traits::Zero,
+    C1: Borrow<Coord>,
+    C2: Borrow<Coord>,
+{
+    let start = start.borrow();
+    let end = end.borrow();
+
+    pathfinding::directed::dijkstra::dijkstra(
+        start,
+        |pos| {
+            cardinal_coords(matrix, pos)
+                .map(|pos| (pos, matrix[pos.0][pos.1].clone()))
+                .clone()
+        },
+        |pos| end == pos,
+    )
+}
