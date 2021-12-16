@@ -1,8 +1,15 @@
-use std::collections::{HashSet, VecDeque};
+use std::{
+    collections::{BTreeSet, VecDeque},
+    vec::IntoIter,
+};
+
+use crate::utils::matrix::{
+    cardinal_coords, enum_iter, enum_navigate, navigate, Coord, IndexesIterator, Matrix,
+};
 
 const INPUT: &str = include_str!("../../inputs/9");
 
-fn parse(text: &str) -> Vec<Vec<u8>> {
+fn parse(text: &str) -> Matrix<u8> {
     text.lines()
         .map(|line| {
             line.trim()
@@ -13,214 +20,59 @@ fn parse(text: &str) -> Vec<Vec<u8>> {
         .collect::<Vec<_>>()
 }
 
-#[derive(Debug)]
-struct IndexesIterator<'a, T> {
-    matrix: &'a Vec<Vec<T>>,
-    indexes: Vec<(usize, usize)>,
+#[inline]
+fn adiacents<'a, T>(matrix: &'a Matrix<T>, pos: Coord) -> IndexesIterator<'a, T, IntoIter<Coord>> {
+    enum_navigate(matrix, &pos, cardinal_coords)
 }
 
-impl<'a, T> IndexesIterator<'a, T> {
-    pub fn new(matrix: &'a Vec<Vec<T>>, indexes: Vec<(usize, usize)>) -> Self {
-        Self { matrix, indexes }
-    }
-}
-
-impl<'a, T> Iterator for IndexesIterator<'a, T> {
-    type Item = ((usize, usize), &'a T);
-
-    fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        while let Some((i, j)) = self.indexes.pop() {
-            if let Some(v) = self.matrix.get(i).and_then(|v| v.get(j)) {
-                return Some(((i, j), v));
-            }
-        }
-
-        None
-    }
-}
-
-#[derive(Debug)]
-struct MatrixEnumeratedIterator<'a, T> {
-    matrix: &'a Vec<Vec<T>>,
-    pos: (usize, usize),
-}
-
-impl<'a, T> MatrixEnumeratedIterator<'a, T> {
-    pub fn new(matrix: &'a Vec<Vec<T>>) -> Self {
-        Self {
-            matrix,
-            pos: (0, 0),
-        }
-    }
-}
-
-impl<'a, T> Iterator for MatrixEnumeratedIterator<'a, T> {
-    type Item = ((usize, usize), &'a T);
-
-    fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        while self.pos.0 < self.matrix.len() {
-            if self.pos.1 < self.matrix[self.pos.0].len() {
-                let res = (self.pos, &self.matrix[self.pos.0][self.pos.1]);
-
-                self.pos.1 += 1;
-                if self.pos.1 >= self.matrix[self.pos.0].len() {
-                    self.pos.0 += 1;
-                    self.pos.1 = 0;
-                }
-
-                return Some(res);
-            }
-            todo!()
-        }
-
-        None
-    }
-}
-
-fn adiacent_indexes<T>(matrix: &Vec<Vec<T>>, pos: (usize, usize)) -> Vec<(usize, usize)> {
-    let mut idxs = Vec::new();
-
-    if matrix.get(pos.0).and_then(|v| v.get(pos.1)).is_none() {
-        return idxs;
-    }
-
-    if pos.0 > 0 && pos.1 < matrix[pos.0 - 1].len() {
-        idxs.push((pos.0 - 1, pos.1));
-    }
-
-    if pos.1 > 0 {
-        idxs.push((pos.0, pos.1 - 1));
-    }
-
-    if pos.1 + 1 < matrix[pos.0].len() {
-        idxs.push((pos.0, pos.1 + 1));
-    }
-
-    if pos.0 + 1 < matrix.len() && pos.1 < matrix[pos.0 + 1].len() {
-        idxs.push((pos.0 + 1, pos.1));
-    }
-
-    idxs
-}
-
-fn adiacents<'a, T>(matrix: &'a Vec<Vec<T>>, pos: (usize, usize)) -> IndexesIterator<'a, T> {
-    IndexesIterator::new(matrix, adiacent_indexes(matrix, pos))
-}
-
-#[derive(Debug)]
-struct LowPointsIterator<'a, T: PartialOrd> {
-    matrix: &'a Vec<Vec<T>>,
-    it: MatrixEnumeratedIterator<'a, T>,
-}
-
-impl<'a, T: PartialOrd> LowPointsIterator<'a, T> {
-    pub fn new(matrix: &'a Vec<Vec<T>>) -> Self {
-        Self {
-            matrix,
-            it: MatrixEnumeratedIterator::new(matrix),
-        }
-    }
-}
-
-impl<'a, T: PartialOrd> Iterator for LowPointsIterator<'a, T> {
-    type Item = ((usize, usize), &'a T);
-
-    fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        while let Some((pos, v)) = self.it.next() {
-            if adiacents(self.matrix, pos)
-                .find(|&(_, v2)| v >= v2)
-                .is_none()
-            {
-                return Some((pos, v));
-            }
-        }
-
-        None
-    }
-}
-
-fn low_points<'a, T: PartialOrd>(matrix: &'a Vec<Vec<T>>) -> LowPointsIterator<'a, T> {
-    LowPointsIterator::new(matrix)
+fn low_points<'a, T: PartialOrd>(
+    matrix: &'a Matrix<T>,
+) -> impl Iterator<Item = (Coord, &'a T)> + 'a {
+    enum_iter(matrix).filter(|&(pos, v)| adiacents(matrix, pos).find(|&(_, v2)| v >= v2).is_none())
 }
 
 fn basin<'a, T: PartialOrd>(
-    matrix: &'a Vec<Vec<T>>,
-    pos: (usize, usize),
+    matrix: &'a Matrix<T>,
+    pos: Coord,
     max: &T,
-    taken: &HashSet<(usize, usize)>,
-) -> HashSet<(usize, usize)> {
-    let mut res = HashSet::new();
-    let mut stack = Vec::new();
-    res.insert(pos);
-    stack.push(pos);
+    taken: &BTreeSet<Coord>,
+) -> BTreeSet<Coord> {
+    let mut state = BTreeSet::new();
+    state.insert(pos);
 
-    while let Some(pos) = stack.pop() {
-        adiacents(matrix, pos)
-            .filter_map::<(usize, usize), _>(|(p2, v2)| {
-                if matrix.get(pos.0).and_then(|v| v.get(pos.1)).unwrap() < v2
-                    && v2 < max
-                    && !taken.contains(&p2)
-                {
-                    Some(p2)
+    navigate(
+        matrix,
+        cardinal_coords,
+        &pos,
+        (state, taken),
+        |(mut res, taken), (_, prev_value), (pos, value)| {
+            (
+                if prev_value < value && value < max && !taken.contains(&pos) {
+                    res.insert(pos);
+                    true
                 } else {
-                    None
-                }
-            })
-            .for_each(|pos| {
-                res.insert(pos);
-                stack.push(pos);
-            });
-    }
-
-    res
+                    false
+                },
+                (res, taken),
+            )
+        },
+    )
+    .0
 }
 
-#[derive(Debug)]
-struct BasinsIterator<'a, T: PartialOrd> {
-    matrix: &'a Vec<Vec<T>>,
-    low_points: VecDeque<(usize, usize)>,
-    taken: HashSet<(usize, usize)>,
+fn basins<'a, T: PartialOrd>(
+    matrix: &'a Matrix<T>,
     max: T,
-}
-
-impl<'a, T: PartialOrd> BasinsIterator<'a, T> {
-    pub fn new(matrix: &'a Vec<Vec<T>>, max: T) -> Self {
-        let lp = low_points(matrix).fold(VecDeque::new(), |mut acc, (p, _)| {
-            acc.push_back(p);
-            acc
+) -> impl Iterator<Item = BTreeSet<Coord>> + 'a {
+    let mut taken = BTreeSet::new();
+    let lp = low_points(matrix).collect::<VecDeque<_>>();
+    lp.into_iter().map(move |(pos, _)| {
+        let b = basin(matrix, pos, &max, &taken);
+        b.iter().for_each(|&p| {
+            taken.insert(p);
         });
-        let mut taken = HashSet::new();
-        lp.iter().for_each(|p| {
-            taken.insert(*p);
-        });
-        Self {
-            matrix,
-            low_points: lp,
-            taken,
-            max,
-        }
-    }
-}
-
-impl<'a, T: PartialOrd> Iterator for BasinsIterator<'a, T> {
-    type Item = HashSet<(usize, usize)>;
-
-    fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        if let Some(p) = self.low_points.pop_front() {
-            let b = basin(self.matrix, p, &self.max, &self.taken);
-            b.iter().for_each(|&p| {
-                self.taken.insert(p);
-            });
-
-            Some(b)
-        } else {
-            None
-        }
-    }
-}
-
-fn basins<'a, T: PartialOrd>(matrix: &'a Vec<Vec<T>>, max: T) -> BasinsIterator<'a, T> {
-    BasinsIterator::new(matrix, max)
+        b
+    })
 }
 
 pub(crate) fn solution1(text: &str) -> usize {

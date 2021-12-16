@@ -1,34 +1,8 @@
 use fifo_set::FIFOSet;
 
+use crate::utils::inc::IncAssign;
+
 const INPUT: &str = include_str!("../../inputs/11");
-
-pub trait Inc: std::ops::Add<Self, Output = Self> + Sized {
-    fn one() -> Self;
-
-    fn inc(self) -> Self {
-        std::ops::Add::add(self, Self::one())
-    }
-}
-
-pub trait IncAssign: Inc + std::ops::AddAssign<Self> {
-    fn inc_assign(&mut self) {
-        std::ops::AddAssign::add_assign(self, <Self as Inc>::one())
-    }
-}
-
-macro_rules! impl_inc {
-    ($($t:ty)*) => {$(
-        impl Inc for $t {
-            fn one() -> Self {
-                1 as $t
-            }
-        }
-
-        impl IncAssign for $t {}
-    )*};
-}
-
-impl_inc! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
 fn neighbors(p: (usize, usize), size: (usize, usize)) -> Vec<(usize, usize)> {
     fn triplet(x: usize, max: usize) -> Vec<usize> {

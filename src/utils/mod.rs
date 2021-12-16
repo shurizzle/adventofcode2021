@@ -1,3 +1,6 @@
+pub mod inc;
+pub mod matrix;
+
 use std::io::{BufRead, BufReader};
 
 pub fn is_eof<R: std::io::Read>(text: &mut BufReader<R>) -> std::io::Result<bool> {
