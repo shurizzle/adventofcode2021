@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use bitbuffer::BigEndian as NetworkEndian;
 
 use bitbuffer::{BitError, BitRead, BitReadBuffer, BitReadStream, Endianness, Result};
@@ -120,16 +118,19 @@ impl RawPacket {
         }
     }
 
+    #[cfg(test)]
     #[inline]
     pub fn is_literal(&self) -> bool {
         self.get_type() == 4
     }
 
+    #[cfg(test)]
     #[inline]
     pub fn is_operation(&self) -> bool {
         !self.is_literal()
     }
 
+    #[cfg(test)]
     pub fn literal(&self) -> Option<u64> {
         match self {
             RawPacket::Literal { literal, .. } => Some(*literal),
