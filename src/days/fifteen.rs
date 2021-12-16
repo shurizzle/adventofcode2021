@@ -4,7 +4,7 @@ use pathfinding::num_traits::Zero;
 
 use crate::utils::{
     inc::IncAssign,
-    matrix::{dijkstra, Coord, Matrix},
+    matrix::{cardinal_coords, dijkstra, Coord, Matrix},
 };
 
 const INPUT: &str = include_str!("../../inputs/15");
@@ -28,6 +28,7 @@ where
         matrix,
         (0, 0),
         (matrix.len() - 1, matrix[matrix.len() - 1].len() - 1),
+        cardinal_coords,
     )
 }
 

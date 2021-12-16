@@ -160,11 +160,19 @@ where
     state
 }
 
-pub fn dijkstra<T, C1, C2>(matrix: &Matrix<T>, start: C1, end: C2) -> Option<(Vec<Coord>, T)>
+pub fn dijkstra<T, C1, C2, I, N, B>(
+    matrix: &Matrix<T>,
+    start: C1,
+    end: C2,
+    mut navigator: B,
+) -> Option<(Vec<Coord>, T)>
 where
     T: Eq + std::hash::Hash + Copy + Clone + Ord + pathfinding::num_traits::Zero,
     C1: Borrow<Coord>,
     C2: Borrow<Coord>,
+    I: Iterator<Item = Coord>,
+    N: Navigator<T, I>,
+    B: BorrowMut<N>,
 {
     let start = start.borrow();
     let end = end.borrow();
@@ -172,9 +180,8 @@ where
     pathfinding::directed::dijkstra::dijkstra(
         start,
         |pos| {
-            cardinal_coords(matrix, pos)
-                .map(|pos| (pos, matrix[pos.0][pos.1].clone()))
-                .clone()
+            enum_navigate::<_, I, N, _>(&matrix, pos, navigator.borrow_mut())
+                .map(|(pos, v)| (pos, v.clone()))
         },
         |pos| end == pos,
     )
