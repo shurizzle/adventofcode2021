@@ -1,3 +1,4 @@
+pub mod dec;
 pub mod inc;
 pub mod matrix;
 
