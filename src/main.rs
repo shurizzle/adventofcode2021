@@ -25,7 +25,7 @@ const DAYS: &'static [fn() -> ()] = &[
     days::nineteen::solution,
     days::twenty::solution,
     days::twentyone::solution,
-    //days::twentytwo::solution,
+    days::twentytwo::solution,
     //days::twentythree::solution,
     //days::twentyfour::solution,
     //days::twentyfive::solution,
