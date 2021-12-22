@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    mem::take,
+};
 
 const INPUT: &str = include_str!("../../inputs/21");
 
@@ -195,7 +198,24 @@ where
     }
 }
 
-static FREQS: &'static [(usize, usize)] = &[(3, 1), (4, 3), (5, 6), (6, 7), (7, 6), (8, 3), (9, 1)];
+fn generate_frequencies(min: usize, max: usize, times: usize) -> Vec<(usize, usize)> {
+    let mut sums = vec![0usize];
+    let mut freqs: BTreeMap<usize, usize> = BTreeMap::new();
+
+    for _ in 0..times {
+        for sum in take(&mut sums) {
+            for v in min..=max {
+                sums.push(sum + v);
+            }
+        }
+    }
+
+    for sum in sums {
+        *freqs.entry(sum).or_insert(0) += 1;
+    }
+
+    freqs.into_iter().collect()
+}
 
 fn modulo(mut value: usize, min: usize, max: usize) -> usize {
     if value >= max {
@@ -213,6 +233,7 @@ fn solve_recursive(
     score_1: usize,
     score_2: usize,
     cache: &mut HashMap<(usize, usize, usize, usize), (usize, usize)>,
+    freqs: &Vec<(usize, usize)>,
 ) -> (usize, usize) {
     let key = (pos_1, pos_2, score_1, score_2);
     if cache.contains_key(&key) {
@@ -229,11 +250,12 @@ fn solve_recursive(
     let mut total_p1_wins = 0;
     let mut total_p2_wins = 0;
 
-    for (roll, freq) in FREQS {
+    for &(roll, freq) in freqs {
         let new_position = modulo(pos_1 + roll, 1, 11);
         let new_score = score_1 + new_position;
 
-        let (p2_wins, p1_wins) = solve_recursive(pos_2, new_position, score_2, new_score, cache);
+        let (p2_wins, p1_wins) =
+            solve_recursive(pos_2, new_position, score_2, new_score, cache, freqs);
 
         total_p1_wins += freq * p1_wins;
         total_p2_wins += freq * p2_wins;
@@ -265,6 +287,7 @@ pub(crate) fn solution2(text: &str) -> usize {
         0,
         0,
         &mut HashMap::new(),
+        &generate_frequencies(1, 3, 3),
     );
     wins_p1.max(wins_p2)
 }
