@@ -63,47 +63,40 @@ impl Board {
     }
 
     fn check_bingo(&mut self) {
-        if !self.has_bingo() {
-            self.check_horizontal_bingo();
+        if self.has_bingo() {
+            return;
         }
 
-        if !self.has_bingo() {
-            self.check_vertical_bingo();
-        }
-    }
+        for x in 0..5usize {
+            let mut h_valid = true;
+            let mut v_valid = true;
+            let mut h = [0u8; 5];
+            let mut v = [0u8; 5];
 
-    fn check_horizontal_bingo(&mut self) {
-        for i in 0..5usize {
-            if (0..5usize)
-                .into_iter()
-                .map(|j| self.markeds[5 * i + j])
-                .find(|&val| !val)
-                .is_none()
-            {
-                let mut bingo: [u8; 5] = [0; 5];
-                for j in 0..5usize {
-                    bingo[j] = self.numbers[5 * i + j];
+            for y in 0..5usize {
+                // horizontal checks
+                if h_valid {
+                    let i = 5 * x + y;
+                    let valid = self.markeds[i];
+                    h_valid = h_valid && valid;
+                    h[y] = self.numbers[i];
                 }
-                self.bingo = Some(bingo);
-                return;
+
+                // vertical checks
+                if v_valid {
+                    let i = x + 5 * y;
+                    let valid = self.markeds[i];
+                    v_valid = v_valid && valid;
+                    v[y] = self.numbers[i];
+                } else if !h_valid {
+                    break;
+                }
             }
-        }
-    }
 
-    fn check_vertical_bingo(&mut self) {
-        for i in 0..5usize {
-            if (0..5usize)
-                .into_iter()
-                .map(|j| self.markeds[i + 5 * j])
-                .find(|&val| !val)
-                .is_none()
-            {
-                let mut bingo: [u8; 5] = [0; 5];
-                for j in 0..5usize {
-                    bingo[j] = self.numbers[i + 5 * j];
-                }
-                self.bingo = Some(bingo);
-                return;
+            if h_valid {
+                self.bingo = Some(h);
+            } else if v_valid {
+                self.bingo = Some(v);
             }
         }
     }
@@ -177,19 +170,18 @@ pub(crate) fn solution2(text: &str) -> u32 {
     let mut last_number = None;
 
     for number in extractions {
-        for board in boards.iter_mut() {
+        let mut i = 0;
+        while i < boards.len() {
+            let board = &mut boards[i];
             board.mark(number);
 
             if board.has_bingo() {
-                last = Some(board.clone());
+                last = Some(boards.remove(i));
                 last_number = Some(number as u32);
+            } else {
+                i += 1;
             }
         }
-
-        boards = boards
-            .into_iter()
-            .filter(|board| !board.has_bingo())
-            .collect::<Vec<Board>>();
     }
 
     last.unwrap()
