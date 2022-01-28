@@ -41,17 +41,11 @@ fn sum_calculate_fuel(positions: &Vec<usize>, position: usize) -> usize {
 fn solve(text: &str, calculate_fuel: fn(&Vec<usize>, usize) -> usize) -> usize {
     let positions = parse(text);
     let max = *positions.iter().max().unwrap();
-    let mut fuel = calculate_fuel(&positions, 0);
-
-    for i in 1..max {
-        let f = calculate_fuel(&positions, i);
-
-        if f < fuel {
-            fuel = f;
-        }
-    }
-
-    fuel
+    (0..max)
+        .into_iter()
+        .map(|i| calculate_fuel(&positions, i))
+        .min()
+        .unwrap()
 }
 
 pub(crate) fn solution1(text: &str) -> usize {
